@@ -191,18 +191,42 @@ function calc(){
   }
 
   if(r !== null){
-    res.innerText = mode==="tasa" ? r.toFixed(2)+"%" : r.toFixed(2);
 
-    let diff = (!isNaN(fin)&&!isNaN(ini)) ? (fin-ini) : (r-ini);
+  let finalCalculado = null;
 
-    dif.innerText = diff.toFixed(2);
-    dif.className = diff>=0 ? "positive" : "negative";
-
-    let crec = (!isNaN(ini) && ini !== 0) ? (diff/ini*100) : 0;
-    crec = isFinite(crec) ? crec : 0;
-
-    document.getElementById("crec").innerText = crec.toFixed(2)+"%";
+  if(mode === "final"){
+    finalCalculado = r;
   }
+
+  if(mode === "tasa" && !isNaN(ini) && !isNaN(p)){
+    finalCalculado = ini * Math.pow(1 + (r/100), p);
+  }
+
+  if(mode === "periodos" && !isNaN(ini) && !isNaN(t)){
+    finalCalculado = ini * Math.pow(1 + t, r);
+  }
+
+  if(mode === "inicial" && !isNaN(fin)){
+    finalCalculado = fin;
+  }
+
+  // RESULTADO
+  res.innerText = mode==="tasa" ? r.toFixed(2)+"%" : r.toFixed(2);
+
+  // DIFERENCIA REAL
+  let diff = (finalCalculado !== null && !isNaN(ini))
+    ? (finalCalculado - ini)
+    : 0;
+
+  dif.innerText = diff.toFixed(2);
+  dif.className = diff>=0 ? "positive" : "negative";
+
+  // CRECIMIENTO REAL
+  let crec = (ini !== 0) ? (diff / ini * 100) : 0;
+  crec = isFinite(crec) ? crec : 0;
+
+  document.getElementById("crec").innerText = crec.toFixed(2) + "%";
+}
 
   if(!isNaN(ini) && !isNaN(t) && !isNaN(p)){
     generarTabla(ini, t, p);
