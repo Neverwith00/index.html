@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora</title>
+
+<style>
+body{
+  margin:0;
+  background:#121212;
+  color:#f0f0f0;
+  font-family:system-ui;
+}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  padding:16px;
+  border-bottom:1px solid #333;
+}
+
+.container{padding:16px;}
+
+.buttons{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+button{
+  padding:6px 12px;
+  border-radius:20px;
+  border:1px solid #333;
+  background:#1e1e1e;
+  color:#aaa;
+}
+
+.active{
+  background:#4fc3f7;
+  color:black;
+}
+
+.card{
+  background:#1e1e1e;
+  border:1px solid #333;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:10px;
+}
+
+input{
+  width:100%;
+  background:transparent;
+  border:none;
+  color:white;
+  font-size:16px;
+  outline:none;
+}
+
+.result{
+  display:flex;
+  justify-content:space-between;
+}
+
+.positive{color:#66bb6a;}
+.negative{color:#ef5350;}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <span>☰</span>
+  <strong>Crecimiento acumulado</strong>
+  <span onclick="reset()">↺</span>
+</div>
+
+<div class="container">
+
+<div class="buttons">
+  <button onclick="setMode('final')" id="final">Final</button>
+  <button onclick="setMode('tasa')" id="tasa">Tasa</button>
+  <button onclick="setMode('periodos')" id="periodos">Periodos</button>
+  <button onclick="setMode('inicial')" id="inicial">Inicial</button>
+</div>
+
+<div class="card">
+<label>Tasa (%)</label>
+<input id="tasaInput" value="2.5">
+</div>
+
+<div class="card">
+<label>Períodos</label>
+<input id="periodosInput" value="10">
+</div>
+
+<div class="card">
+<label>Valor inicial</label>
+<input id="inicialInput" value="1000">
+</div>
+
+<div class="card">
+<label>Valor final</label>
+<input id="finalInput">
+</div>
+
+<h3>Resultados</h3>
+
+<div class="card result">
+<span>Resultado</span>
+<span id="res">-</span>
+</div>
+
+<div class="card result">
+<span>Diferencia</span>
+<span id="dif">-</span>
+</div>
+
+<div class="card result">
+<span>Crecimiento</span>
+<span id="crec">-</span>
+</div>
+
+<!-- TABLA -->
+<div id="tablaContainer" style="margin-top:16px; display:none;">
+  <h3>Desglose por período</h3>
+
+  <div style="border:1px solid #333; border-radius:10px; overflow:hidden; max-height:250px; overflow-y:auto;">
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; background:#222; padding:8px; font-size:12px; color:#aaa;">
+      <span>Periodo</span>
+      <span>Valor</span>
+      <span>Ganancia</span>
+    </div>
+
+    <div id="tablaBody"></div>
+
+  </div>
+</div>
+
+</div>
+
+<script>
+
+let mode="final";
+
+function setMode(m){
+  mode=m;
+  document.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+  document.getElementById(m).classList.add("active");
+  calc();
+}
+
+function reset(){
+  tasaInput.value="";
+  periodosInput.value="";
+  inicialInput.value="";
+  finalInput.value="";
+  calc();
+}
+
+document.querySelectorAll("input").forEach(i=>{
+  i.addEventListener("input",calc);
+});
+
+function calc(){
+  let t=parseFloat(tasaInput.value)/100;
+  let p=parseFloat(periodosInput.value);
+  let ini=parseFloat(inicialInput.value);
+  let fin=parseFloat(finalInput.value);
+
+  let r = null;
+
+  if(mode==="final" && !isNaN(t)&&!isNaN(p)&&!isNaN(ini)){
+    r = ini*Math.pow(1+t,p);
+    finalInput.value = r.toFixed(2);
+  }
+
+  if(mode==="tasa" && !isNaN(p)&&!isNaN(ini)&&!isNaN(fin)){
+    r = (Math.pow(fin/ini,1/p)-1)*100;
+  }
+
+  if(mode==="periodos" && !isNaN(t)&&!isNaN(ini)&&!isNaN(fin)){
+    r = Math.log(fin/ini)/Math.log(1+t);
+  }
+
+  if(mode==="inicial" && !isNaN(t)&&!isNaN(p)&&!isNaN(fin)){
+    r = fin/Math.pow(1+t,p);
+  }
+
+  if(r !== null){
+    res.innerText = mode==="tasa" ? r.toFixed(2)+"%" : r.toFixed(2);
+
+    let diff = (!isNaN(fin)&&!isNaN(ini)) ? (fin-ini) : (r-ini);
+
+    dif.innerText = diff.toFixed(2);
+    dif.className = diff>=0 ? "positive" : "negative";
+
+    let crec = (!isNaN(ini) && ini !== 0) ? (diff/ini*100) : 0;
+    crec = isFinite(crec) ? crec : 0;
+
+    document.getElementById("crec").innerText = crec.toFixed(2)+"%";
+  }
+
+  if(!isNaN(ini) && !isNaN(t) && !isNaN(p)){
+    generarTabla(ini, t, p);
+  }
+}
+
+function generarTabla(ini, tasa, periodos){
+  const body = document.getElementById("tablaBody");
+  const container = document.getElementById("tablaContainer");
+
+  body.innerHTML = "";
+
+  if(isNaN(ini) || isNaN(tasa) || isNaN(periodos)){
+    container.style.display = "none";
+    return;
+  }
+
+  container.style.display = "block";
+
+  let valor = ini;
+
+  for(let i=1; i<=Math.min(periodos, 100); i++){
+    let nuevo = valor * (1 + tasa);
+    let ganancia = nuevo - valor;
+
+    let row = document.createElement("div");
+    row.style.display = "grid";
+    row.style.gridTemplateColumns = "1fr 1fr 1fr";
+    row.style.padding = "8px";
+    row.style.fontSize = "12px";
+    row.style.background = i % 2 === 0 ? "#181818" : "#1e1e1e";
+
+    row.innerHTML = `
+      <span>${i}</span>
+      <span>${nuevo.toFixed(2)}</span>
+      <span style="color:#66bb6a">+${ganancia.toFixed(2)}</span>
+    `;
+
+    body.appendChild(row);
+
+    valor = nuevo;
+  }
+}
+
+setMode("final");
+
+</script>
+
+</body>
+</html>
